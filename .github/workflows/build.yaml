@@ -1,0 +1,29 @@
+name: Nvidia HPC SDK Docker build
+on:
+  workflow_dispatch:
+  push:
+    branches: ["**"]
+jobs:
+  build:
+    name: Build with Cmake
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+      - name: Create Docker container
+        run: |
+          docker pull nvcr.io/nvidia/nvhpc:23.5-devel-cuda_multi-ubuntu22.04
+          docker tag nvcr.io/nvidia/nvhpc:23.5-devel-cuda_multi-ubuntu22.04 nvhpc_builder
+      - name: Build
+        run: |
+          mkdir -p build
+          docker run --rm -v $(pwd):/app -w /app/build nvhpc_builder cmake ..
+          docker run --rm -v $(pwd):/app -w /app/build nvhpc_builder cmake --build .
+      - name: Upload binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: HelloCuda
+          path: ./build/hello_cuda
+          retention-days: 1
